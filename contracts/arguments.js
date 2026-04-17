@@ -1,0 +1,5 @@
+module.exports = [
+  "0xaeeb5Eb0afC626254Fe546732739C01f396CAC89", // Registry Address
+  "0x409559C551270311F457782A740066A696956F1E", // SOLT Token (Checksum Fixed)
+  "0xC30050aBe984c3B3929822E3BbF33fbBE6b3C423"  // Treasury Wallet
+];
