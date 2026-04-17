@@ -1,0 +1,71 @@
+# --- DEPENDENCIES ---
+node_modules/
+/dist
+/build
+.next/
+
+# --- ENVIRONMENT VARIABLES (CRITICAL) ---
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+.env.*.backup
+*.env.bak
+.envrc
+*.local
+
+# --- PRIVATE KEYS & SECRETS (ANTI-HACK) ---
+*.pem
+*.key
+*.pub
+*.cert
+*.pfx
+*.p12
+
+# --- DEPLOYMENT TRASH ---
+.vercel
+.netlify
+.serverless
+
+# --- LOGS & PROCESSES ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+pids/
+*.pid
+pm2.log
+
+# --- OS JUNK ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# --- EDITOR & IDE ---
+.vscode/
+.idea/
+*.suo
+*.njsproj
+*.sln
+
+# --- REDIS & DATABASE ---
+dump.rdb
+*.sqlite
+
+# --- TESTING & COVERAGE ---
+coverage/
+.nyc_output/
+
+# --- CACHE ---
+.cache/
+.eslintcache
+*.tmp
+*.swp
+# Hardhat folders
+artifacts/
+cache/
+typechain/
+typechain-types/

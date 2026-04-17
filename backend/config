@@ -1,0 +1,17 @@
+require("dotenv").config();
+
+const config = {
+  rpcUrl: process.env.RPC_URL,
+  privateKey: process.env.PRIVATE_KEY,
+
+  chainId: 56, // BSC Mainnet
+  chainName: "BNB Chain",
+
+  gasLimit: 3000000,
+};
+
+if (!config.rpcUrl || !config.privateKey) {
+  throw new Error("❌ Missing RPC_URL or PRIVATE_KEY in .env");
+}
+
+module.exports = config;

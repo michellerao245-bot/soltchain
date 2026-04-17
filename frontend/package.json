@@ -1,0 +1,28 @@
+{
+  "name": "soltdex-frontend",
+  "version": "0.1.0",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "ethers": "^6.10.0",
+    "@web3modal/ethereum": "^2.7.1",
+    "@web3modal/react": "^2.7.1"
+  },
+  "scripts": {
+    "start": "set GENERATE_SOURCEMAP=false && react-scripts start",
+    "build": "set GENERATE_SOURCEMAP=false && react-scripts build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

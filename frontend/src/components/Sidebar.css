@@ -1,0 +1,105 @@
+/* Sidebar Container */
+.sidebar {
+  width: 260px; /* Standard Desktop Width */
+  background-color: #1e293b; /* Dark Navy Blue */
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  border-right: 1px solid #334155;
+  z-index: 1000;
+  overflow-x: hidden;
+}
+
+/* Jab Sidebar Band Ho (Collapsed) */
+.sidebar.closed {
+  width: 80px;
+}
+
+/* Header Section (Logo + Button) */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.sidebar.closed .sidebar-header {
+  justify-content: center;
+  padding: 20px 0;
+}
+
+/* Logo Styling */
+.logo {
+  color: #f59e0b; /* Golden Color */
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Menu Items Container */
+.menu-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  overflow-y: auto;
+}
+
+/* Individual Menu Link */
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 25px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: 0.2s;
+  gap: 15px; /* Icon aur text ke beech gap */
+}
+
+.menu-item:hover {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.menu-item svg {
+  font-size: 1.2rem;
+  min-width: 25px;
+}
+
+/* Sidebar Footer (Language Button) */
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #334155;
+  display: flex;
+  justify-content: center;
+}
+
+.lang-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 0;
+  width: 100%;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* Scrollbar Styling (Optional) */
+.menu-container::-webkit-scrollbar {
+  width: 5px;
+}
+
+.menu-container::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}

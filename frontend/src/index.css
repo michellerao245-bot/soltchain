@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global reset */
+* {
+  box-sizing: border-box;
+}
+
+/* Body styling */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #0f172a;
+  color: white;
+}
+
+/* Root container full height */
+#root {
+  min-height: 100vh;
+}
+
+/* Fix Web3Modal overlay issues */
+w3m-modal {
+  z-index: 9999 !important;
+}
+
+/* Prevent invisible blocking layers */
+button, input {
+  position: relative;
+  z-index: 1;
+}
