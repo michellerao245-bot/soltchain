@@ -2,12 +2,15 @@
   "name": "soltdex-frontend",
   "version": "0.1.0",
   "dependencies": {
+    "@web3modal/ethereum": "^2.7.1",
+    "@web3modal/react": "^2.7.1",
+    "ethers": "^6.10.0",
+    "lucide-react": "^1.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "ethers": "^6.10.0",
-    "@web3modal/ethereum": "^2.7.1",
-    "@web3modal/react": "^2.7.1"
+    "viem": "^2.48.1",
+    "wagmi": "^3.6.2"
   },
   "scripts": {
     "start": "set GENERATE_SOURCEMAP=false && react-scripts start",

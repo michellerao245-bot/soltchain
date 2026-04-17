@@ -5,10 +5,11 @@ import "./index.css";
 
 // --- WAGMI & QUERY CLIENT IMPORTS ---
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { bsc, mainnet, polygon } from 'wagmi/chains';
+// Fix: wagmi/chains ki jagah viem/chains use kar rahe hain
+import { bsc, mainnet, polygon } from 'viem/chains'; 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// 1. Setup Config (Saare chains yahan add honge)
+// 1. Setup Config (SoltDex aur Soltcoin ke liye chains setup)
 const config = createConfig({
   chains: [bsc, mainnet, polygon],
   transports: {
@@ -25,7 +26,7 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
   <React.StrictMode>
-    {/* Wagmi aur QueryClient se Wrap karna zaroori hai */}
+    {/* WagmiProvider aur QueryClientProvider se wrap karna zaroori hai */}
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <App />
