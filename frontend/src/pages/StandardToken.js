@@ -40,21 +40,18 @@ const StandardToken = () => {
 
       const signer = await provider.getSigner();
 
-      // --- PART 1: APPROVAL ---
-      console.log("Approving SOLT...");
+     // --- PART 1: APPROVAL ---
       const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
       
-      // Mobile ke liye wait mechanism ko thoda behtar karte hain
-      const receipt = await approveTx.wait();
-      console.log("Approval Receipt mil gayi:", receipt);
+      // wait() ka intezar karne ke bajaye, alert de kar manually trigger karwao
+      alert("Approval Sent! Ab 5-10 second rukiye, Deployment popup apne aap aayega...");
 
-      // --- PART 2: DEPLOYMENT (Thoda gap dekar call karte hain) ---
+      // Thoda bada delay (3-5 seconds) taaki BSC network transaction register kar le
       setTimeout(async () => {
         try {
           const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
           const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
 
-          console.log("Ab Deploy popup aana chahiye...");
           const deployTx = await factoryContract.createStandardToken(
             formData.name,
             formData.symbol,
@@ -63,16 +60,17 @@ const StandardToken = () => {
           );
 
           await deployTx.wait();
-          alert("🎉 Mubarak Ho! Token Successfull Deploy ho gaya!");
-        } catch (innerErr) {
-          console.error("Deploy Error:", innerErr);
-          alert("Step 2 Fail: " + (innerErr.reason || innerErr.message));
+          alert("🎉 Mubarak Ho! JCB Token Deploy ho gaya!");
+        } catch (err) {
+          console.error(err);
+          // Agar gas ka issue aaye toh yahan dikhega
+          alert("Step 2 Error: " + (err.reason || "Transaction Cancelled/Failed"));
         } finally {
           setLoading(false);
         }
-      }, 1000); // 1 second ka delay taaki wallet ready ho jaye
+      }, 5000); // 5 second ka solid delay
 
-  // Niche ka pura Return block wahi hai jo aapne manga tha
+  
   return (
     <div className="mint-container fade-in">
       <h1 className="mint-title">Deploy <span className="blue-text">Standard Token</span></h1>
