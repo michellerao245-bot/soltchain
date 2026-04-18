@@ -10,16 +10,19 @@ const StandardToken = () => {
   const FACTORY_ADDRESS = "0xc8fBBfa8172D3FF165889259C3a02eC5a5Cc3a18";
   const SOLT_TOKEN_ADDRESS = "0x6C8942407c65D0f038b04DD5DA3420eC826Cc8d9";
 
-  // Input fields ki styling - Isse white strip hat jayegi
+  // Sabse solid style - Direct Blue Border aur Black Background
   const inputStyle = {
-    background: '#121212', // Dark background
-    border: '2px solid #007bff', // Blue border
-    color: 'white',
-    padding: '12px',
+    backgroundColor: '#0d1117', // Dark background
+    border: '2px solid #007bff', // Solid Blue Border
+    color: '#ffffff', // White Text
+    padding: '15px',
     borderRadius: '8px',
     width: '100%',
-    marginBottom: '15px',
-    fontSize: '16px'
+    marginBottom: '20px',
+    fontSize: '16px',
+    display: 'block',
+    outline: 'none',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.8)'
   };
 
   const handleDeploy = async (e) => {
@@ -27,39 +30,32 @@ const StandardToken = () => {
     try {
       if (!window.ethereum) return alert("MetaMask nahi mila!");
       setLoading(true);
-
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const provider = new ethers.BrowserProvider(window.ethereum);
-      
       const network = await provider.getNetwork();
       if (network.chainId !== 56n) {
         await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] });
       }
-
       const signer = await provider.getSigner();
       const soltContract = new ethers.Contract(SOLT_TOKEN_ADDRESS, ["function approve(address spender, uint256 amount) public returns (bool)"], signer);
-      
-      const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
-      await approveTx.wait();
-
+      await (await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18))).wait();
       const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
       const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
-
       const deployTx = await factoryContract.createStandardToken(formData.name, formData.symbol, supplyWei, parseInt(formData.decimals));
       await deployTx.wait();
-      alert("🎉 Standard Token Successfully Deployed!");
+      alert("🎉 Token Deployed Successfully!");
     } catch (err) {
       alert("Error: " + (err.reason || err.message));
     } finally { setLoading(false); }
   };
 
   return (
-    <div className="mint-container fade-in">
-      <h1 className="mint-title">Deploy <span className="blue-text">Standard Token</span></h1>
-      <div className="mint-section">
-        <form onSubmit={handleDeploy} className="form-grid">
-          <div className="input-group">
-            <label style={{color: '#aaa'}}>Token Name</label>
+    <div className="mint-container fade-in" style={{background: 'transparent'}}>
+      <h1 className="mint-title" style={{color: 'white'}}>Deploy <span className="blue-text">Standard Token</span></h1>
+      <div className="mint-section" style={{background: 'transparent', border: 'none'}}>
+        <form onSubmit={handleDeploy}>
+          <div style={{marginBottom: '15px'}}>
+            <label style={{color: '#007bff', display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Token Name</label>
             <input 
               style={inputStyle}
               placeholder="Ex: JCB Coin" 
@@ -68,8 +64,8 @@ const StandardToken = () => {
               required 
             />
           </div>
-          <div className="input-group">
-            <label style={{color: '#aaa'}}>Symbol</label>
+          <div style={{marginBottom: '15px'}}>
+            <label style={{color: '#007bff', display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Symbol</label>
             <input 
               style={inputStyle}
               placeholder="JCB" 
@@ -78,8 +74,8 @@ const StandardToken = () => {
               required 
             />
           </div>
-          <div className="input-group">
-            <label style={{color: '#aaa'}}>Total Supply</label>
+          <div style={{marginBottom: '15px'}}>
+            <label style={{color: '#007bff', display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Total Supply</label>
             <input 
               style={inputStyle}
               type="number" 
@@ -92,11 +88,21 @@ const StandardToken = () => {
           
           <button 
             type="submit" 
-            className="mint-submit-btn" 
             disabled={loading}
-            style={{gridColumn: '1 / -1', background: '#007bff', color: 'white', padding: '15px', border: 'none', borderRadius: '8px', cursor: 'pointer'}}
+            style={{
+              width: '100%',
+              background: '#007bff', 
+              color: 'white', 
+              padding: '15px', 
+              border: 'none', 
+              borderRadius: '8px', 
+              cursor: 'pointer',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginTop: '10px'
+            }}
           >
-            {loading ? "Processing..." : "Deploy Token Now"}
+            {loading ? "Processing Transaction..." : "Deploy Token Now"}
           </button>
         </form>
       </div>
