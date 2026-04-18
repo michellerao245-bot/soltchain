@@ -12,10 +12,10 @@
     "viem": "^2.48.1",
     "wagmi": "^3.6.2"
   },
-  "scripts": {
-    "start": "set GENERATE_SOURCEMAP=false && react-scripts start",
-    "build": "set GENERATE_SOURCEMAP=false && react-scripts build"
-  },
+ "scripts": {
+  "start": "GENERATE_SOURCEMAP=false react-scripts start",
+  "build": "GENERATE_SOURCEMAP=false react-scripts build"
+}
   "browserslist": {
     "production": [
       ">0.2%",
