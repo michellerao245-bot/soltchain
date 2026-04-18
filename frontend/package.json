@@ -1,6 +1,7 @@
 {
   "name": "soltdex-frontend",
   "version": "0.1.0",
+  "private": true,
   "dependencies": {
     "@web3modal/ethereum": "^2.7.1",
     "@web3modal/react": "^2.7.1",
@@ -12,10 +13,10 @@
     "viem": "^2.48.1",
     "wagmi": "^3.6.2"
   },
- "scripts": {
-  "start": "GENERATE_SOURCEMAP=false react-scripts start",
-  "build": "GENERATE_SOURCEMAP=false react-scripts build"
-}
+  "scripts": {
+    "start": "GENERATE_SOURCEMAP=false react-scripts start",
+    "build": "GENERATE_SOURCEMAP=false react-scripts build"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
