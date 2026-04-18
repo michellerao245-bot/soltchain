@@ -40,42 +40,37 @@ const StandardToken = () => {
 
       const signer = await provider.getSigner();
 
-      // --- PART 1: APPROVAL (SOLT Fees) ---
-      const soltContract = new ethers.Contract(
-        SOLT_TOKEN_ADDRESS,
-        ["function approve(address spender, uint256 amount) public returns (bool)"],
-        signer
-      );
-
-      console.log("Approval shuru ho rahi hai...");
-      const feeInSolt = ethers.parseUnits("6000", 18);
+      // --- PART 1: APPROVAL ---
+      console.log("Approving SOLT...");
+      const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
       
-      const approveTx = await soltContract.approve(FACTORY_ADDRESS, feeInSolt);
-      await approveTx.wait();
-      alert("Step 1 Clear: SOLT Approve ho gaya!");
+      // Mobile ke liye wait mechanism ko thoda behtar karte hain
+      const receipt = await approveTx.wait();
+      console.log("Approval Receipt mil gayi:", receipt);
 
-      // --- PART 2: ACTUAL DEPLOYMENT ---
-      const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-      const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
+      // --- PART 2: DEPLOYMENT (Thoda gap dekar call karte hain) ---
+      setTimeout(async () => {
+        try {
+          const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+          const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
 
-      console.log("Token deploy popup aane wala hai...");
-      const deployTx = await factoryContract.createStandardToken(
-        formData.name,
-        formData.symbol,
-        supplyWei,
-        parseInt(formData.decimals)
-      );
+          console.log("Ab Deploy popup aana chahiye...");
+          const deployTx = await factoryContract.createStandardToken(
+            formData.name,
+            formData.symbol,
+            supplyWei,
+            parseInt(formData.decimals)
+          );
 
-      await deployTx.wait();
-      alert("🎉 Mubarak Ho! Token Successfull Deploy ho gaya!");
-
-    } catch (err) {
-      console.error("Full Error:", err);
-      alert("Daya, error ye hai: " + (err.reason || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+          await deployTx.wait();
+          alert("🎉 Mubarak Ho! Token Successfull Deploy ho gaya!");
+        } catch (innerErr) {
+          console.error("Deploy Error:", innerErr);
+          alert("Step 2 Fail: " + (innerErr.reason || innerErr.message));
+        } finally {
+          setLoading(false);
+        }
+      }, 1000); // 1 second ka delay taaki wallet ready ho jaye
 
   // Niche ka pura Return block wahi hai jo aapne manga tha
   return (
