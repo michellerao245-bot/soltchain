@@ -1,123 +1,101 @@
 import React, { useState } from 'react';
-import { ethers } from 'ethers'; // Ethers v6 
-import './CreateToken.css';
-import FACTORY_ABI from '../contractABI.json';
+import { ethers } from 'ethers';
 
-const StandardToken = () => {
-  const [loading, setLoading] = useState(false);
+// Apne Factory aur SOLT ke details yahan check kar lena
+const FACTORY_ADDRESS = "0xc8fBBfa8172d3ff165889259c3a02ec5a5cc3a18"; //
+const SOLT_TOKEN_ADDRESS = "0x6C8942407c65D0f038b04DD5DA3420eC826Cc8d9"; //
+
+const StandardToken = ({ signer, FACTORY_ABI, SOLT_ABI }) => {
   const [formData, setFormData] = useState({
     name: '',
     symbol: '',
-    supply: '',
-    decimals: '18'
+    decimals: '18',
+    supply: ''
   });
-
-  const FACTORY_ADDRESS = "0xc8fBBfa8172D3FF165889259C3a02eC5a5Cc3a18";
-  const SOLT_TOKEN_ADDRESS = "0x6C8942407c65D0f038b04DD5DA3420eC826Cc8d9";
+  const [loading, setLoading] = useState(false);
 
   const handleDeploy = async (e) => {
     e.preventDefault();
-    try {
-      if (!window.ethereum) return alert("MetaMask nahi mila!");
-      setLoading(true);
+    if (!signer) return alert("Pehle Wallet Connect karo!");
+    setLoading(true);
 
-      // 1. Wallet Connection & Network Sync
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const provider = new ethers.BrowserProvider(window.ethereum);
+    try {
+      const soltContract = new ethers.Contract(SOLT_TOKEN_ADDRESS, SOLT_ABI, signer);
+      const feeInSolt = ethers.parseUnits("6000", 18);
+
+      // --- STEP 1: APPROVAL ---
+      console.log("Approving SOLT...");
+      const approveTx = await soltContract.approve(FACTORY_ADDRESS, feeInSolt);
       
-      // BSC Network Check (Optional but recommended)
-      const network = await provider.getNetwork();
-      if (network.chainId !== 56n) {
-          try {
-              await window.ethereum.request({
-                  method: 'wallet_switchEthereumChain',
-                  params: [{ chainId: '0x38' }],
-              });
-          } catch (err) {
-              console.log("Network switch rejected");
-          }
-      }
+      alert("Approval Sent! 5 second rukiye, Deployment popup apne aap aayega...");
 
-      const signer = await provider.getSigner();
+      // --- STEP 2: DEPLOYMENT (5 Sec Delay for Mobile) ---
+      setTimeout(async () => {
+        try {
+          const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+          const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
 
-    // --- PART 1: APPROVAL ---
-const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
-alert("Approval bhej diya hai! 5 second wait karein, Deployment popup apne aap aayega.");
-
-// wait() ka intezar kiye bina 5s baad Step 2 trigger karo
-setTimeout(async () => {
-    try {
-        const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-        const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
-
-        const deployTx = await factoryContract.createStandardToken(
+          console.log("Deploying Token...");
+          const deployTx = await factoryContract.createStandardToken(
             formData.name,
             formData.symbol,
             supplyWei,
             parseInt(formData.decimals)
-        );
-        await deployTx.wait();
-        alert("🎉 JCB Token Deploy Ho Gaya!");
+          );
+
+          await deployTx.wait();
+          alert("🎉 Mubarak Ho! " + formData.name + " Token Deploy ho gaya!");
+        } catch (innerErr) {
+          console.error("Step 2 Error:", innerErr);
+          alert("Deployment Fail: " + (innerErr.reason || innerErr.message));
+        } finally {
+          setLoading(false);
+        }
+      }, 5000);
+
     } catch (err) {
-        alert("Step 2 Fail: " + (err.reason || "Check Balance/Gas"));
+      console.error("Step 1 Error:", err);
+      alert("Approval Fail: " + (err.reason || err.message));
+      setLoading(false);
     }
-}, 5000);
+  };
 
-  
   return (
-    <div className="mint-container fade-in">
-      <h1 className="mint-title">Deploy <span className="blue-text">Standard Token</span></h1>
-      <div className="mint-section">
-        <div className="form-grid">
-          <div className="input-group">
-            <label>Token Name</label>
-            <input
-              type="text"
-              placeholder="Ex: JCB Coin"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-          <div className="input-group">
-            <label>Symbol</label>
-            <input
-              type="text"
-              placeholder="JCB"
-              value={formData.symbol}
-              onChange={(e) => setFormData({...formData, symbol: e.target.value})}
-            />
-          </div>
-          <div className="input-group">
-            <label>Decimals</label>
-            <input
-              type="number"
-              value={formData.decimals}
-              onChange={(e) => setFormData({...formData, decimals: e.target.value})}
-            />
-          </div>
-          <div className="input-group">
-            <label>Total Supply</label>
-            <input
-              type="number"
-              placeholder="1000000"
-              value={formData.supply}
-              onChange={(e) => setFormData({...formData, supply: e.target.value})}
-            />
-          </div>
-        </div>
-
+    <div className="p-6 bg-dark-card rounded-lg shadow-lg">
+      <h2 className="text-xl font-bold mb-4 text-white">Deploy Standard Token</h2>
+      <form onSubmit={handleDeploy} className="space-y-4">
+        <input
+          type="text"
+          placeholder="Token Name (e.g. JCB)"
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+        <input
+          type="text"
+          placeholder="Symbol (e.g. JCB)"
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          value={formData.symbol}
+          onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
+          required
+        />
+        <input
+          type="number"
+          placeholder="Total Supply"
+          className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+          value={formData.supply}
+          onChange={(e) => setFormData({ ...formData, supply: e.target.value })}
+          required
+        />
         <button
-          className="mint-submit-btn"
-          type="button"
-          onClick={(e) => {
-            console.log("Button click detect ho gaya!");
-            handleDeploy(e);
-          }}
+          type="submit"
           disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200"
         >
           {loading ? "Processing..." : "Deploy Token Now"}
         </button>
-      </div>
+      </form>
     </div>
   );
 };
