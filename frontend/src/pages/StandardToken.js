@@ -40,35 +40,28 @@ const StandardToken = () => {
 
       const signer = await provider.getSigner();
 
-     // --- PART 1: APPROVAL ---
-      const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
-      
-      // wait() ka intezar karne ke bajaye, alert de kar manually trigger karwao
-      alert("Approval Sent! Ab 5-10 second rukiye, Deployment popup apne aap aayega...");
+    // --- PART 1: APPROVAL ---
+const approveTx = await soltContract.approve(FACTORY_ADDRESS, ethers.parseUnits("6000", 18));
+alert("Approval bhej diya hai! 5 second wait karein, Deployment popup apne aap aayega.");
 
-      // Thoda bada delay (3-5 seconds) taaki BSC network transaction register kar le
-      setTimeout(async () => {
-        try {
-          const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-          const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
+// wait() ka intezar kiye bina 5s baad Step 2 trigger karo
+setTimeout(async () => {
+    try {
+        const factoryContract = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+        const supplyWei = ethers.parseUnits(formData.supply.toString(), parseInt(formData.decimals));
 
-          const deployTx = await factoryContract.createStandardToken(
+        const deployTx = await factoryContract.createStandardToken(
             formData.name,
             formData.symbol,
             supplyWei,
             parseInt(formData.decimals)
-          );
-
-          await deployTx.wait();
-          alert("🎉 Mubarak Ho! JCB Token Deploy ho gaya!");
-        } catch (err) {
-          console.error(err);
-          // Agar gas ka issue aaye toh yahan dikhega
-          alert("Step 2 Error: " + (err.reason || "Transaction Cancelled/Failed"));
-        } finally {
-          setLoading(false);
-        }
-      }, 5000); // 5 second ka solid delay
+        );
+        await deployTx.wait();
+        alert("🎉 JCB Token Deploy Ho Gaya!");
+    } catch (err) {
+        alert("Step 2 Fail: " + (err.reason || "Check Balance/Gas"));
+    }
+}, 5000);
 
   
   return (
