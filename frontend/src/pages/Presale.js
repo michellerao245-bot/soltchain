@@ -1,113 +1,110 @@
-import React, { useState } from "react";
-import { useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react'
-import { ethers } from 'ethers'
+import React, { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import './Presale.css';
+
+const PRESALE_ADDRESS = "0xD4Ca789015c7C5fe19E1cF947C09dbA2b0520b3E";
+const PRESALE_ABI = [
+    "function currentStage() public view returns (uint256)",
+    "function stages(uint256) public view returns (uint256 priceUSD, uint256 supply, uint256 sold)",
+    "function buyTokens(address _referrer) public payable"
+];
 
 const Presale = () => {
-  const [amount, setAmount] = useState("");
-  const [status, setStatus] = useState("");
-  const { isConnected } = useWeb3ModalAccount() 
-  const { walletProvider } = useWeb3ModalProvider()
+    const [amountBNB, setAmountBNB] = useState("");
+    const [status, setStatus] = useState("");
+    const [stageInfo, setStageInfo] = useState({ stage: "1", price: "0.030", inrPrice: "2.52" });
 
-  const contractAddress = "0x186eb36aD051f6EB72cb43bd2b0ce621F93a374d";
+    // 1. Data Fetching (Using Public Provider)
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+                const contract = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, provider);
+                const stageIndex = await contract.currentStage();
+                const stageDetails = await contract.stages(stageIndex);
+                const usdPrice = ethers.formatUnits(stageDetails.priceUSD, 18);
+                setStageInfo({
+                    stage: (Number(stageIndex) + 1).toString(),
+                    price: parseFloat(usdPrice).toFixed(3),
+                    inrPrice: (parseFloat(usdPrice) * 84).toFixed(2)
+                });
+            } catch (err) { console.error(err); }
+        };
+        fetchData();
+    }, []);
 
-  const handleBuy = async () => {
-    if (!isConnected) {
-      setStatus("❌ Please connect wallet from the top right button!");
-      return;
-    }
-    if (!amount || isNaN(amount)) {
-      setStatus("❌ Please enter a valid BNB amount!");
-      return;
-    }
+    // 2. The "Bulletproof" Buy Function
+    const handleBuy = async () => {
+        if (typeof window.ethereum === 'undefined') {
+            alert("Please Install MetaMask First!");
+            return;
+        }
 
-    try {
-      setStatus("Processing...");
-      const ethersProvider = new ethers.BrowserProvider(walletProvider)
-      const signer = await ethersProvider.getSigner()
-      const abi = ["function buyTokens() payable"];
-      const contract = new ethers.Contract(contractAddress, abi, signer);
+        try {
+            setStatus("Please Wait For MetaMask Popup .....");
 
-      const tx = await contract.buyTokens({
-        value: ethers.parseEther(amount.toString())
-      });
+            // --- CRITICAL STEP: Ye line har project (Standard/Burn/Fee) ke liye popup layegi ---
+            await window.ethereum.request({
+                method: 'wallet_requestPermissions',
+                params: [{ eth_accounts: {} }]
+            });
 
-      setStatus("Transaction Sent! Waiting...");
-      await tx.wait();
-      setStatus("✅ Success! Tokens Bought.");
-      setAmount("");
-    } catch (err) {
-      console.error(err);
-      // Agar balance $1.50 se kam hua toh yahan error show hoga
-      setStatus("❌ Error: Check balance or gas fees.");
-    }
-  };
+            // Ab naye accounts ki request
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            console.log("Active Account:", accounts[0]);
 
-  return (
-    <div style={{ 
-      padding: "100px 20px", 
-      textAlign: "center", 
-      color: "white", 
-      backgroundColor: "transparent" // Background app handle karega
-    }}>
-      
-      {/* 1. SECTION HEADERS */}
-      <h2 style={{ color: "#f59e0b", fontSize: "28px", fontWeight: "bold", marginBottom: "10px" }}>
-        SOLT PUBLIC SALE
-      </h2>
-      <p style={{ color: "#cbd5e1", fontSize: "16px", marginBottom: "40px" }}>
-        Enter BNB amount to buy SOLT
-      </p>
-      
-      {/* 2. INPUT & BUY BUTTON ONLY */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-        <input
-          type="number"
-          step="any"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{
-            padding: "14px",
-            borderRadius: "8px",
-            backgroundColor: "#1a2234",
-            color: "white",
-            border: "1px solid #f59e0b",
-            width: "220px",
-            fontSize: "18px",
-            outline: "none"
-          }}
-        />
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(PRESALE_ADDRESS, PRESALE_ABI, signer);
 
-        <button 
-          onClick={handleBuy} 
-          style={{ 
-            padding: "14px 30px", 
-            background: "#f59e0b", 
-            borderRadius: "8px", 
-            fontWeight: "bold", 
-            border: "none", 
-            cursor: "pointer",
-            color: "#000",
-            fontSize: "16px"
-          }}
-        >
-          BUY NOW
-        </button>
-      </div>
+            const referrer = "0x0000000000000000000000000000000000000000";
+            const val = ethers.parseEther(amountBNB);
 
-      {/* 3. CLEAN STATUS MESSAGE */}
-      {status && (
-        <p style={{ 
-          marginTop: "25px", 
-          color: status.includes("❌") ? "#ff4444" : "#f59e0b",
-          fontSize: "14px",
-          fontWeight: "500"
-        }}>
-          {status}
-        </p>
-      )}
-    </div>
-  );
+            setStatus("Please Confirm Transaction.....");
+
+            const tx = await contract.buyTokens(referrer, { value: val });
+
+            setStatus("Confirming on Blockchain...");
+            await tx.wait();
+            
+           setStatus("Successfully! Tokens Purchased 🚀");
+           alert("Congratulations! SOLT tokens have been successfully received in your wallet.");
+           setAmountBNB("");
+
+        } catch (err) {
+            console.error("Final Error:", err);
+            if (err.code === 4001) {
+                setStatus("Transaction cancel kar di gayi.");
+            } else {
+                setStatus("Error: " + (err.reason || "Wallet issue, please try again."));
+            }
+        }
+    };
+
+    return (
+        <div className="presale-container">
+            <div className="presale-card">
+                <h2>Soltcoin (SOLT) Presale</h2>
+                <div className="stage-badge">Live: Stage {stageInfo.stage}</div>
+                <div className="price-box">
+                    <p>Current Price: <strong>${stageInfo.price}</strong></p>
+                    <p className="inr-text">≈ ₹{stageInfo.inrPrice}</p>
+                </div>
+                <div className="input-group">
+                    <label>Amount in BNB</label>
+                    <input 
+                        type="number" 
+                        step="0.0001" 
+                        value={amountBNB} 
+                        onChange={(e) => setAmountBNB(e.target.value)} 
+                        placeholder="e.g. 0.002" 
+                    />
+                </div>
+                <button className="buy-btn" onClick={handleBuy}>Buy SOLT Tokens</button>
+                {status && <p className="status-msg" style={{color: '#f59e0b', marginTop: '10px'}}>{status}</p>}
+            </div>
+        </div>
+    );
 };
 
 export default Presale;

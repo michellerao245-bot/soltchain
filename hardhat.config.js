@@ -2,20 +2,13 @@ import "dotenv/config";
 
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-verify";
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 
 export default {
-  solidity: {
-    version: "0.8.20",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
-    },
-  },
+  solidity: "0.8.20",
 
   networks: {
     bscMainnet: {
@@ -26,6 +19,6 @@ export default {
   },
 
   etherscan: {
-    apiKey: BSCSCAN_API_KEY
+    apiKey: BSCSCAN_API_KEY   // 👈 IMPORTANT CHANGE
   }
 };
