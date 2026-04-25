@@ -1,118 +1,97 @@
+const { ethers } = require('ethers');
 require('dotenv').config();
-const { Worker } = require('bullmq');
 
+// Sab kuch ek hi jagah import kar rahe hain
 const supabase = require('../../shared/supabase');
 const { verifyContract } = require("../../modules/verify-system/bscVerify");
 const { getSourceCode } = require("../../modules/verify-system/sourceReader");
 const { encodeArgs } = require("../../modules/verify-system/encoder");
 const { getContractName } = require("../../modules/verify-system/contractMap");
 
-// ✅ Redis Config
-const connection = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null
-};
+// 1. Provider & Factory Setup
+const provider = new ethers.JsonRpcProvider(process.env.BSC_RPC_URL);
+const factoryAddress = process.env.FACTORY_CONTRACT_ADDRESS;
 
-// 🚀 Worker
-const worker = new Worker('blockchain-events', async (job) => {
-  const data = job.data || {};
+const factoryAbi = ["event TokenCreated(address indexed owner, address indexed token, string tokenType)"];
+const tokenAbi = [
+    "function name() view returns (string)",
+    "function symbol() view returns (string)",
+    "function totalSupply() view returns (uint256)",
+    "function decimals() view returns (uint8)"
+];
 
-  const {
-    token,
-    tokenType,
-    owner,
-    txHash,
-    blockNumber,
-    name,
-    symbol,
-    totalSupply,
-    decimals,
-    devWallet,
-    tax
-  } = data;
+async function startSystem() {
+    try {
+        const network = await provider.getNetwork();
+        console.log(`🌐 Connected to BSC (ChainID: ${network.chainId})`);
+        console.log(`🏠 Monitoring Factory: ${factoryAddress}`);
+    } catch (error) {
+        console.error("💀 Connection Error:", error.message);
+        process.exit(1);
+    }
 
-  // ❌ Safety check
-  if (!token || !tokenType) {
-    console.error(`⚠️ Job ${job.id} skipped: Missing token data`);
-    return { status: 'skipped' };
-  }
+    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
 
-  console.log(`\n🛠️ Processing Job [${job.id}]: ${tokenType} -> ${token}`);
+    console.log("📡 SOLTDEX DIRECT SYSTEM ONLINE...");
 
-  try {
-    // 🔥 1. Get Contract Name (mapping)
-    const contractName = getContractName(tokenType);
+    factoryContract.on("TokenCreated", async (owner, tokenAddress, tokenType, event) => {
+        console.log(`\n🆕 NEW TOKEN: ${tokenType} | Address: ${tokenAddress}`);
 
-    // 🔥 2. Load Source Code (flat)
-    const sourceCode = getSourceCode(tokenType);
+        try {
+            const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
 
-    // 🔥 3. Encode constructor args
-    const encodedArgs = encodeArgs(
-      tokenType,
-      name,
-      symbol,
-      totalSupply,
-      decimals,
-      owner,
-      devWallet,
-      tax
-    );
+            // 1. Fetch Details
+            const [name, symbol, totalSupply, decimals] = await Promise.all([
+                tokenContract.name(),
+                tokenContract.symbol(),
+                tokenContract.totalSupply(),
+                tokenContract.decimals()
+            ]);
 
-    // 🔥 4. Verify
-    const result = await verifyContract({
-      contractAddress: token,
-      contractName,
-      sourceCode,
-      constructorArgs: encodedArgs,
-      compilerVersion: "v0.8.20+commit.a1b79de6"
+            const formattedSupply = ethers.formatUnits(totalSupply, decimals);
+            console.log(`📋 Details: ${name} (${symbol}) | Supply: ${formattedSupply}`);
+
+            // 2. Prepare for Verification
+            const contractName = getContractName(tokenType);
+            const source = getSourceCode(tokenType);
+            
+            const encodedArgs = encodeArgs(
+                contractName, name, symbol, formattedSupply, 
+                Number(decimals), owner, (process.env.DEV_WALLET || owner), 
+                (tokenType === 'FeeToken' ? 1000 : 0)
+            );
+
+            // 3. DIRECT VERIFICATION (No Redis!)
+            console.log("⏳ Submitting to BscScan Directly...");
+            const result = await verifyContract({
+                contractAddress: tokenAddress,
+                contractName: contractName,
+                sourceCode: source,
+                constructorArgs: encodedArgs,
+                compilerVersion: "v0.8.20+commit.a1b79de6"
+            });
+
+            console.log(`🔍 BscScan Result: ${result.message}`);
+
+            // 4. Update Database
+            const isVerified = result.success || result.message.toLowerCase().includes("already verified");
+            
+            await supabase.from('verified_tokens').upsert([{
+                address: tokenAddress.toLowerCase(),
+                owner: owner.toLowerCase(),
+                token_type: tokenType,
+                is_verified: isVerified,
+                processed_at: new Date()
+            }], { onConflict: 'address' });
+
+            console.log(isVerified ? "⭐ SUCCESS: VERIFIED!" : "⚠️ FAILED TO VERIFY");
+
+        } catch (err) {
+            console.error("❌ Process Error:", err.message);
+        }
     });
 
-    console.log(`🔍 BscScan Result:`, result);
+    provider.on("block", (b) => { if(b % 10 === 0) console.log(`⛓️ Block: ${b}`); });
+}
 
-    // ✅ Check success
-    const isVerified =
-      result.success ||
-      (result.message && result.message.toLowerCase().includes("already verified"));
-
-    // 💾 Save to DB
-    const { error } = await supabase
-      .from('verified_tokens')
-      .upsert([
-        {
-          address: token.toLowerCase(),
-          owner: owner.toLowerCase(),
-          token_type: tokenType,
-          tx_hash: txHash,
-          block_number: blockNumber,
-          is_verified: isVerified,
-          guid: result.guid || null,
-          processed_at: new Date()
-        }
-      ], { onConflict: 'address' });
-
-    if (error) throw error;
-
-    return { status: 'done', token, verified: isVerified };
-
-  } catch (err) {
-    console.error(`❌ Worker Error (Job ${job.id}): ${err.message}`);
-    throw err;
-  }
-
-}, {
-  connection,
-  concurrency: 1, // safe for BscScan
-});
-
-// 📊 Logs
-worker.on('completed', (job, result) => {
-  console.log(`✔️ Job ${job.id} done | Verified: ${result.verified}`);
-});
-
-worker.on('failed', (job, err) => {
-  console.log(`🆘 Job ${job.id} failed: ${err.message}`);
-});
-
-console.log("🚀 Worker running...");
+startSystem();

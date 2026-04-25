@@ -1,147 +1,128 @@
-require('dotenv').config();
-const { Worker } = require('bullmq');
-const supabase = require('../../shared/supabase');
+require("dotenv").config();
+
+const { Worker } = require("bullmq");
+const redisConnection = require("./redis");
+
 const { verifyContract } = require("../../modules/verify-system/bscVerify");
 const { getSourceCode } = require("../../modules/verify-system/sourceReader");
 const { encodeArgs } = require("../../modules/verify-system/encoder");
-const { getContractName } = require("../../modules/verify-system/contractMap"); // ✅ USE CENTRAL MAP
+const { getContractName } = require("../../modules/verify-system/contractMap");
 
-// 🔌 Redis Connection
-const connection = {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
-    maxRetriesPerRequest: null
-};
+const { ethers } = require("ethers");
+const supabase = require("../../shared/supabase");
 
-// 🚀 Worker
-const worker = new Worker('blockchain-events', async (job) => {
-
+const worker = new Worker(
+  "blockchain-events",
+  async (job) => {
     const data = job.data || {};
 
     const {
-        token,
-        tokenType,
-        owner,
-        txHash,
-        blockNumber,
-        name,
-        symbol,
-        totalSupply,
-        decimals,
-        devWallet,
-        tax
+      tokenAddress,
+      tokenType,
+      owner,
+      txHash,
+      blockNumber,
+      name,
+      symbol,
+      totalSupply,
+      decimals,
+      devWallet,
+      tax,
     } = data;
 
-    // ❌ Validation
-    if (!token || !tokenType) {
-        console.error(`⚠️ Job ${job.id} skipped: Missing token or type`);
-        return { status: 'skipped' };
+    if (!tokenAddress || !tokenType) {
+      console.log(`⚠️ Skipping job ${job.id}`);
+      return;
     }
 
-    console.log(`\n🛠️ Processing Job [${job.id}]`);
-    console.log("👉 Token:", token);
-    console.log("👉 Type:", tokenType);
+    console.log("\n-----------------------------");
+    console.log(`🛠️ Job ${job.id}`);
+    console.log(`👉 ${name} (${symbol})`);
+    console.log("-----------------------------");
 
     try {
+      // 🔥 1. Contract Name
+      const contractName = getContractName(tokenType);
 
-        // ==============================
-        // 🔥 1. CONTRACT NAME (CENTRALIZED)
-        // ==============================
-        const contractName = getContractName(tokenType);
+      // 🔥 2. Source Code
+      const source = getSourceCode(tokenType);
+      if (!source) throw new Error("Source code missing");
 
-        console.log("✅ Contract Name:", contractName);
+      // 🔥 3. FIX SUPPLY (CRITICAL)
+      const parsedSupply = ethers.parseUnits(
+        totalSupply.toString(),
+        Number(decimals)
+      );
 
-        // ==============================
-        // 📄 2. SOURCE CODE
-        // ==============================
-        const source = getSourceCode(tokenType); // ✅ FIXED
+      // 🔥 4. Encode Args
+      const encodedArgs = encodeArgs(
+        contractName,
+        name,
+        symbol,
+        parsedSupply.toString(),
+        Number(decimals),
+        owner,
+        devWallet,
+        tax
+      );
 
-        if (!source) {
-            throw new Error(`❌ Source code not found for ${contractName}`);
-        }
+      console.log("🔐 Args ready");
 
-        // ==============================
-        // 🔐 3. ENCODE ARGS
-        // ==============================
-        const encodedArgs = encodeArgs(
-            contractName,
-            name,
-            symbol,
-            totalSupply,
-            decimals,
-            owner,
-            devWallet,
-            tax
-        );
+      // 🔥 5. Verify
+      const result = await verifyContract({
+        contractAddress: tokenAddress,
+        contractName: contractName,
+        sourceCode: source,
+        constructorArgs: encodedArgs,
+      });
 
-        console.log("🔐 Encoded Args:", encodedArgs);
+      console.log("🔍 Verify:", result.message);
 
-        // ==============================
-        // 📡 4. VERIFY
-        // ==============================
-        const result = await verifyContract({
-            contractAddress: token,
-            contractName: contractName,
-            sourceCode: source,
-            constructorArgs: encodedArgs,
-            compilerVersion: "v0.8.20+commit.a1b79de6"
-        });
+      const isVerified =
+        result.success ||
+        (result.message &&
+          result.message.toLowerCase().includes("already verified"));
 
-        console.log(`🔍 BscScan Result:`, result);
+      // 🔥 6. DB update
+      await supabase.from("verified_tokens").upsert(
+        [
+          {
+            address: tokenAddress.toLowerCase(),
+            owner: owner.toLowerCase(),
+            token_type: tokenType,
+            tx_hash: txHash,
+            block_number: blockNumber,
+            is_verified: isVerified,
+            processed_at: new Date(),
+          },
+        ],
+        { onConflict: "address" }
+      );
 
-        // ==============================
-        // 🗄️ 5. DATABASE
-        // ==============================
-        const isVerified =
-            result.success ||
-            (result.message && result.message.toLowerCase().includes("already verified"));
+      console.log(
+        isVerified ? "⭐ VERIFIED" : "⚠️ Pending (will retry)"
+      );
 
-        const { error } = await supabase
-            .from('verified_tokens')
-            .upsert([
-                {
-                    address: token.toLowerCase(),
-                    owner: owner.toLowerCase(),
-                    token_type: tokenType,
-                    tx_hash: txHash,
-                    block_number: blockNumber,
-                    is_verified: isVerified,
-                    processed_at: new Date(),
-                    guid: result.guid || null
-                }
-            ], { onConflict: 'address' });
-
-        if (error) throw error;
-
-        return {
-            status: 'completed',
-            token: token.toLowerCase(),
-            verified: isVerified
-        };
+      return { verified: isVerified };
 
     } catch (err) {
-        console.error(`❌ Worker Error (Job ${job.id}):`, err.message);
-        throw err;
+      console.error(`❌ Job ${job.id}:`, err.message);
+      throw err; // retry
     }
-
-}, {
-    connection,
+  },
+  {
+    connection: redisConnection,
     concurrency: 1,
-    settings: {
-        backoffStrategies: {
-            exponential: (attempts) => Math.pow(2, attempts) * 5000
-        }
-    }
+  }
+);
+
+// EVENTS
+worker.on("completed", (job, res) => {
+  console.log(`✔️ Done Job ${job.id} | Verified: ${res?.verified}`);
 });
 
-// 📊 Logs
-worker.on('completed', (job, result) => {
-    console.log(`✔️ Job ${job.id} done | Token: ${result.token} | Verified: ${result.verified}`);
+worker.on("failed", (job, err) => {
+  console.log(`🆘 Failed Job ${job?.id}: ${err.message}`);
 });
 
-worker.on('failed', (job, err) => {
-    console.log(`🆘 Job ${job.id} failed permanently: ${err.message}`);
-});
-
-console.log("🚀 Verification Worker Started...");
+console.log("🚀 WORKER RUNNING...");

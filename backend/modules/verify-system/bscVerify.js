@@ -1,20 +1,26 @@
-const axios = require('axios');
-require('dotenv').config();
+const axios = require("axios");
+const qs = require("qs");
+require("dotenv").config();
 
-const API_URL = "https://api.bscscan.com/api";
+const API_URL = "https://api.etherscan.io/v2/api";
 
-// 🔁 STATUS CHECK FUNCTION
-async function checkStatus(guid, apiKey) {
+// ⏳ helper
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+// 🔎 Check status
+async function checkStatus(guid) {
   while (true) {
-    await new Promise(res => setTimeout(res, 4000)); // wait 4 sec
+    await sleep(5000);
 
-    const params = new URLSearchParams();
-    params.append('apikey', apiKey);
-    params.append('module', 'contract');
-    params.append('action', 'checkverifystatus');
-    params.append('guid', guid);
-
-    const res = await axios.get(API_URL, { params });
+    const res = await axios.get(API_URL, {
+      params: {
+        chainid: "56",
+        module: "contract",
+        action: "checkverifystatus",
+        guid: guid,
+        apikey: process.env.ETHERSCAN_API_KEY,
+      },
+    });
 
     console.log("🔎 Status:", res.data);
 
@@ -22,7 +28,10 @@ async function checkStatus(guid, apiKey) {
       return { success: true, message: res.data.result };
     }
 
-    if (res.data.result.includes("Pending")) {
+    if (
+      res.data.result &&
+      res.data.result.toLowerCase().includes("pending")
+    ) {
       continue;
     }
 
@@ -30,68 +39,75 @@ async function checkStatus(guid, apiKey) {
   }
 }
 
-// 🚀 MAIN VERIFY FUNCTION
+// 🚀 Verify contract
 async function verifyContract({
   contractAddress,
   contractName,
+  sourceCode,
   compilerVersion,
   constructorArgs,
-  sourceCode
 }) {
-  const apiKey = process.env.BSCSCAN_API_KEY;
+  const apiKey = process.env.ETHERSCAN_API_KEY;
 
-  const params = new URLSearchParams();
+  if (!apiKey) {
+    throw new Error("❌ ETHERSCAN_API_KEY missing in backend/.env");
+  }
 
-  params.append('apikey', apiKey);
-  params.append('module', 'contract');
-  params.append('action', 'verifysourcecode');
+  const data = {
+    chainId: "56",
+    module: "contract",
+    action: "verifysourcecode",
+    apikey: apiKey,
 
-  params.append('chainid', '56');
+    contractaddress: contractAddress,
+    sourceCode: sourceCode,
+    codeformat: "solidity-single-file",
+    contractname: contractName,
 
-  params.append('contractaddress', contractAddress);
+    compilerversion:
+      compilerVersion || "v0.8.20+commit.a1b79de6",
 
-  params.append('contractname', `${contractName}.sol:${contractName}`);
+    optimizationUsed: "1",
+    runs: "200",
 
-  params.append('compilerversion', compilerVersion || "v0.8.20+commit.a1b79de6");
-
-  params.append('codeformat', 'solidity-single-file'); // ⚠️ IMPORTANT
-
-  params.append('optimizationUsed', '0');
-  params.append('runs', '200');
-
-  params.append('constructorArguments', constructorArgs || "");
-
-  params.append('sourceCode', sourceCode);
+    constructorArguments: constructorArgs || "",
+  };
 
   try {
-    console.log(`📡 Submitting verification: ${contractAddress}`);
+    console.log("📡 Verifying:", contractAddress);
 
-    const res = await axios.post(API_URL, params.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      timeout: 60000
-    });
+    // DEBUG
+    console.log("📤 Payload:", qs.stringify(data));
 
-    console.log("📨 Submit Response:", res.data);
+    const res = await axios.post(
+      API_URL,
+      qs.stringify(data),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    console.log("📨 Verify Response:", res.data);
 
     if (res.data.status === "0") {
+      if (
+        res.data.result &&
+        res.data.result.toLowerCase().includes("already verified")
+      ) {
+        return { success: true, message: "Already Verified" };
+      }
+
       throw new Error(res.data.result);
     }
 
     const guid = res.data.result;
 
-    console.log("🧾 GUID:", guid);
-    console.log("⏳ Waiting for verification...");
+    console.log("⏳ Waiting 10 sec...");
+    await sleep(10000);
 
-    // 🔁 CHECK STATUS LOOP
-    const finalResult = await checkStatus(guid, apiKey);
-
-    return {
-      success: true,
-      guid,
-      message: finalResult.message
-    };
+    return await checkStatus(guid);
 
   } catch (err) {
     console.error("❌ VERIFY ERROR:", err.message);

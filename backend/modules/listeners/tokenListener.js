@@ -2,88 +2,115 @@ const { ethers } = require('ethers');
 const { Queue } = require('bullmq');
 require('dotenv').config();
 
-// 1. Redis Connection Setup
+// 🔥 GLOBAL BigInt FIX (extra safety)
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
+// 🔥 Redis Connection
 const connection = {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined
+  host: process.env.REDIS_HOST || '127.0.0.1',
+  port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD || undefined
 };
 
 const tokenQueue = new Queue('blockchain-events', { connection });
 
-// 2. Provider & Contract Details
+// 🔥 Provider
 const provider = new ethers.JsonRpcProvider(process.env.BSC_RPC_URL);
 const factoryAddress = process.env.FACTORY_CONTRACT_ADDRESS;
 
-// ABI: Sirf wahi events jo Factory mein hain
+// 🔥 ABIs
 const factoryAbi = [
-    "event TokenCreated(address indexed owner, address indexed token, string tokenType)"
+  "event TokenCreated(address indexed owner, address indexed token, string tokenType)"
 ];
 
-// Token ABI: Name, Symbol, Supply nikalne ke liye
 const tokenAbi = [
-    "function name() view returns (string)",
-    "function symbol() view returns (string)",
-    "function totalSupply() view returns (uint256)",
-    "function decimals() view returns (uint8)"
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
+  "function decimals() view returns (uint8)"
 ];
 
-async function startListener() {
-    console.log("📡 Listening for SoltDex Factory Events...");
-
-    const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
-
-    // 🚀 Listen for 'TokenCreated' Event
-    factoryContract.on("TokenCreated", async (owner, tokenAddress, tokenType, event) => {
-        console.log(`\n🆕 New Token Detected: ${tokenType}`);
-        console.log(`📍 Address: ${tokenAddress}`);
-
-        try {
-            // 3. Token ki extra details nikalna (Verification ke liye zaroori hain)
-            const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
-
-            // Saare calls ek sath karo (Optimization)
-            const [name, symbol, totalSupply, decimals] = await Promise.all([
-                tokenContract.name(),
-                tokenContract.symbol(),
-                tokenContract.totalSupply(),
-                tokenContract.decimals()
-            ]);
-
-            // 4. Job Data prepare karo (Worker isi data ko use karega)
-            const jobData = {
-                tokenAddress: tokenAddress,
-                tokenType: tokenType, // 'Standard', 'Burnable', 'FeeToken'
-                owner: owner,
-                name: name,
-                symbol: symbol,
-                // Supply ko human-readable format mein convert karo (bina decimals ke)
-                totalSupply: ethers.formatUnits(totalSupply, decimals), 
-                decimals: decimals,
-                txHash: event.log.transactionHash,
-                blockNumber: event.log.blockNumber,
-                // Note: FeeToken ke liye agar extra data chahiye toh yahan add kar sakte ho
-                tax: tokenType === 'FeeToken' ? 1000 : 0, 
-                devWallet: process.env.DEV_WALLET || owner
-            };
-
-            // 5. Redis Queue mein job add karo
-            await tokenQueue.add('verify-job', jobData, {
-                attempts: 3,
-                backoff: { type: 'exponential', delay: 5000 }
-            });
-
-            console.log(`✅ Job added to Queue for verification: ${symbol}`);
-
-        } catch (err) {
-            console.error(`❌ Error fetching token details for ${tokenAddress}:`, err.message);
-        }
-    });
+// 🔥 Safe JSON converter
+function safe(obj) {
+  return JSON.parse(
+    JSON.stringify(obj, (_, v) =>
+      typeof v === "bigint" ? v.toString() : v
+    )
+  );
 }
 
-// Start the listener
-startListener().catch((err) => {
-    console.error("💀 Listener Failed to start:", err);
-});
+async function startListener() {
+  console.log("📡 Listening for SoltDex Factory Events...");
+
+  const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
+
+  factoryContract.on("TokenCreated", async (...args) => {
+    const [owner, tokenAddress, tokenType, event] = args;
+
+    console.log("\n🆕 New Token Detected:", String(tokenType));
+    console.log("📍 Address:", String(tokenAddress));
+
+    try {
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
+
+      // 🔥 Parallel calls
+      const [name, symbol, totalSupply, decimals] = await Promise.all([
+        tokenContract.name(),
+        tokenContract.symbol(),
+        tokenContract.totalSupply(),
+        tokenContract.decimals()
+      ]);
+
+      // 🔥 SAFE event values
+      const blockNumber = event?.log?.blockNumber
+        ? Number(event.log.blockNumber)
+        : 0;
+
+      const txHash = event?.log?.transactionHash || "";
+
+      // 🚀 Prepare job data
+      const jobData = {
+        tokenAddress: String(tokenAddress),
+        tokenType: String(tokenType),
+        owner: String(owner),
+
+        name: String(name),
+        symbol: String(symbol),
+
+        totalSupply: ethers.formatUnits(totalSupply, decimals), // string
+
+        decimals: Number(decimals),
+
+        txHash: txHash,
+        blockNumber: blockNumber,
+
+        tax: tokenType === 'FeeToken' ? 1000 : 0,
+        devWallet: process.env.DEV_WALLET || String(owner)
+      };
+
+      // 🔥 FINAL SAFE OBJECT
+      const safeData = safe(jobData);
+
+      // 🧪 Debug (optional)
+      console.log("📦 Prepared Data:", safeData);
+
+      // 🚀 Add to queue
+      await tokenQueue.add('verify-job', safeData, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 }
+      });
+
+      console.log(`✅ Job added to Queue for verification: ${symbol}`);
+
+    } catch (err) {
+      console.error(`❌ Error fetching token details for ${tokenAddress}:`, err.message);
+    }
+  });
+}
+
+
+  
 
 module.exports = { startListener };
