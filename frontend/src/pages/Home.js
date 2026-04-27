@@ -33,7 +33,7 @@ const Home = () => {
       <div className="hero-token-section">
         <h1>SOLTCOIN – A Secure & Community-Driven crypto Asset</h1>
         <p className="hero-subtext">
-          A decentralized BEP-20 token on BSC with a fixed total supply of 50,000,000 SOLTCOIN, built for transparency, security, and long-term value.
+          A decentralized BEP-20 token on BSC with a fixed total supply of 5,000,000,000 SOLTCOIN, built for transparency, security, and long-term value.
         </p>
         
         {/* Placeholder for Token Emblem */}
