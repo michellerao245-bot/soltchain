@@ -8,7 +8,7 @@ const Home = () => {
   const tokenStats = [
     { label: "Token Name", value: "SOLTCOIN", color: "#f59e0b" },
     { label: "Token Symbol", value: "$SOLT", color: "#3b82f6" },
-    { label: "Total Supply", value: "50,000,000", color: "#10b981" },
+    { label: "Total Supply", value: "5,000,000,000", color: "#10b981" },
     { label: "Network", value: "BSC (BEP-20)", color: "#8b5cf6" }
   ];
 
