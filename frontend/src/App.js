@@ -1,3 +1,4 @@
+import AdminDashboard from './pages/AdminDashboard';
 import React, { useState, useEffect } from 'react';  
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';              
              
@@ -100,7 +101,8 @@ function App() {
                       
                 <div className="content-wrapper">     
                   <div className="main-content">                
-                    <Routes>                
+                    <Routes> 
+                      <Route path="/solt-admin" element={<AdminDashboard />} />             
                       <Route path="/" element={<Home />} />                
                       <Route path="/dashboard" element={<Dashboard userAddress={userAccount} />} />          
                       <Route path="/view-sales" element={<ViewSales />} />          

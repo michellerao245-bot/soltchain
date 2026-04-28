@@ -23,6 +23,7 @@ const StandardTokenWizard = () => {
   // ==========================================
   // HARDCORE ADDRESS FETCHING LOGIC
   // ==========================================
+  // Line 23: Yahan se shuru tha
   useEffect(() => {
     if (isDeployConfirmed && deployReceipt) {
       console.log("Full Receipt:", deployReceipt); // Debugging ke liye
@@ -40,7 +41,7 @@ const StandardTokenWizard = () => {
             topics: factoryLog.topics,
           });
 
-          // Address nikalne ke teen tarike (jo bhi kaam kar jaye)
+          // Address nikalne ke teen tarike
           const finalAddr = decoded?.args?.[0] || decoded?.args?.token || decoded?.args?.tokenAddress;
           
           if (finalAddr) {
@@ -51,19 +52,19 @@ const StandardTokenWizard = () => {
           // Agar direct event nahi mila, toh receipt mein se last log try karo
           const lastLog = deployReceipt.logs[deployReceipt.logs.length - 1];
           if (lastLog && lastLog.topics[1]) {
-            // Kabhi-kabhi address topics mein encoded hota hai
-            const rawAddr = "0x" + lastLog.topics[1].slice(26); 
+            // Address topics mein encoded hota hai
+            const rawAddr = "0x" + lastLog.topics[1].slice(26);
             setDeployedAddress(rawAddr);
             setStep(3);
           }
         }
       } catch (err) {
         console.error("Decode Error:", err);
-        setStep(3); // Error aaye tab bhi step 3 par jao taaki user fas na jaye
+        setStep(3); // Error aaye tab bhi step 3 par jao
       }
     }
   }, [isDeployConfirmed, deployReceipt]);
-
+  // Line 64: Yahan khatam tha
   const handleApprove = async () => {
     if (!isConnected) return alert("Wallet connect karein");
     try {

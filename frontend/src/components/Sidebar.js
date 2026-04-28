@@ -42,7 +42,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         <Link to="/create" className="menu-item"><FaPlusCircle /> {isOpen && "Create"}</Link>
         <Link to="/dashboard" className="menu-item"><FaChartLine /> {isOpen && "Dashboard"}</Link>
         <Link to="/soltswap" className="menu-item"><FaExchangeAlt /> {isOpen && "Soltswap"}</Link>
-        <Link to="/scam-detection" className="menu-item"><FaShieldAlt /> {isOpen && "Scam Detection"}</Link>
+        <a href="https://soltguard-ai.vercel.app" target="_blank" rel="noopener noreferrer" className="menu-item">
+        <FaShieldAlt /> {isOpen && "Scam Detection"}
+        </a>
         <Link to="/whale-tracking" className="menu-item"><FaFish /> {isOpen && "Whale Tracking"}</Link>
         <Link to="/sniping-signals" className="menu-item"><FaCrosshairs /> {isOpen && "Sniping Signals"}</Link>
         <Link to="/token-analytics" className="menu-item"><FaChartBar /> {isOpen && "Token Analytics"}</Link>
