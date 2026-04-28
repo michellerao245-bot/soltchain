@@ -20,6 +20,10 @@ coverage.json
 /flat.sol
 /flattened.sol
 /flattenedRegistry.sol
+.eslintcache
+.stylelintcache
+.vercel
+*.local
 
 # Build outputs
 /build
@@ -37,3 +41,6 @@ yarn-error.log*
 Thumbs.db
 flat.sol
 flattened.sol
+.vs code
+.idea
+*.swp
