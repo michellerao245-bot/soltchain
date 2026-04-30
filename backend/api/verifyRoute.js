@@ -5,7 +5,7 @@ const router = express.Router();
 const {
   verifyContract,
   checkStatus
-} = require("../modules/verify-system/bscVerify");
+const { verifyContract, checkStatus } = require("../modules/verify-system/bscVerify");.
 
 
 /**
