@@ -18,13 +18,14 @@ const SnipingSignals = () => {
     setError(false);
 
     try {
-      // Step 1: Backend API Call (localhost)
-      // Note: Backend response structure: { success: true, data: [...] }
-      const response = await axios.get('http://localhost:5010/api/signals');
-      
-      if (response.data && response.data.success) {
-        const finalPairs = response.data.data;
+     
+      const API = import.meta.env.VITE_API_URL;
 
+      const res = await axios.get(`${API}/signals`);
+
+        if (res.data && res.data.success) {
+      const finalPairs = res.data.data;
+}
         // Step 2: Optimized State Update
         setPairs(prev => {
           if (JSON.stringify(prev) !== JSON.stringify(finalPairs)) {
