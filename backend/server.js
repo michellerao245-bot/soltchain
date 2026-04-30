@@ -10,7 +10,7 @@ const cors = require("cors");
 
 const app = express();
 
-// 🔥 Middlewares (FIRST)
+// 🔥 Middlewares
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.text({ limit: "50mb" }));
@@ -21,12 +21,12 @@ const signalRoutes = require("./routes/signalRoutes");
 const createTokenRoute = require("./api/createToken");
 const verifyRoutes = require("./api/verifyRoute");
 
-// 🔥 Routes (AFTER middleware)
+// 🔥 Routes
 app.use("/api", signalRoutes);
 app.use("/api", createTokenRoute);
 app.use("/api", verifyRoutes);
 
-// 🚀 Health check (IMPORTANT for frontend)
+// 🚀 Health check
 app.get("/", (req, res) => {
   res.send("🚀 SoltDex Backend Running");
 });
@@ -35,23 +35,21 @@ app.get("/", (req, res) => {
 console.log("WSS:", process.env.WSS_RPC ? "Loaded ✅" : "Missing ❌");
 console.log("ETHERSCAN API:", process.env.ETHERSCAN_API_KEY ? "Loaded ✅" : "Missing ❌");
 
-// 🔥 Listener (SAFE START)
+// 🔥 Listener (safe start)
 try {
   const { startListener } = require("./modules/listeners/tokenListener");
   startListener();
+  console.log("📡 Listener started");
 } catch (err) {
   console.error("❌ Listener failed:", err.message);
 }
 
-// 🚀 Start server
+// 🚀 Start server (ONLY ONE)
 const PORT = process.env.PORT || 10000;
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
 });
+
 module.exports = app;
