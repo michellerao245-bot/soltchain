@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-// 🚀 Import service layer (Path and Syntax Fixed)
+// 🚀 Import service layer (Case-sensitive path fixed for Linux)
 const {
   verifyContract,
   checkStatus
@@ -53,7 +53,7 @@ router.post("/verify-contract", async (req, res) => {
 });
 
 /**
- * 🚀 2. Check verification status (GREEN TICK TRACKER)
+ * 🚀 2. Check verification status
  * POST /api/check-status
  */
 router.post("/check-status", async (req, res) => {
