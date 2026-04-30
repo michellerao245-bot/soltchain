@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-// 🚀 Import service layer (Verified Path)
+// 🚀 Import service layer (Linux compatible path)
 const {
   verifyContract,
   checkStatus
