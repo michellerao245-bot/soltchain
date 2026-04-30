@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-// 🚀 Import service layer (Case-sensitive path fixed for Linux)
+// 🚀 Import service layer (Verified Path)
 const {
   verifyContract,
   checkStatus
