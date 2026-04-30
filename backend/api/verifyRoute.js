@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-// 🚀 Import service layer
+// 🚀 Import service layer (Path and Syntax Fixed)
 const {
   verifyContract,
   checkStatus
-const { verifyContract, checkStatus } = require("../modules/verify-system/bscVerify");.
-
+} = require("../modules/verify-system/bscVerify");
 
 /**
  * 🚀 1. Submit verification request
@@ -46,14 +45,12 @@ router.post("/verify-contract", async (req, res) => {
 
   } catch (err) {
     console.error("❌ verify-contract error:", err.message);
-
     res.status(500).json({
       success: false,
       error: err.message
     });
   }
 });
-
 
 /**
  * 🚀 2. Check verification status (GREEN TICK TRACKER)
@@ -80,13 +77,11 @@ router.post("/check-status", async (req, res) => {
 
   } catch (err) {
     console.error("❌ check-status error:", err.message);
-
     res.status(500).json({
       success: false,
       error: err.message
     });
   }
 });
-
 
 module.exports = router;
