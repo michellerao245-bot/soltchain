@@ -44,9 +44,11 @@ try {
 }
 
 // 🚀 Start server
+if (process.env.NODE_ENV !== 'production') {
 const PORT = process.env.PORT || 5010;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
 });
+module.exports = app;
