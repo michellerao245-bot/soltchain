@@ -1,86 +1,36 @@
 const express = require("express");
 const router = express.Router();
 
-// 🚀 Import service layer (Linux compatible path)
-const {
-  verifyContract,
-  checkStatus
-} = require("../modules/verify-system/bscVerify");
+// 🚀 Service layer import (Fixed path)
+const { verifyContract, checkStatus } = require("../modules/verify-system/bscVerify");
 
 /**
- * 🚀 1. Submit verification request
- * POST /api/verify-contract
+ * 🚀 Submit verification
  */
 router.post("/verify-contract", async (req, res) => {
   try {
-    const {
-      contractAddress,
-      sourceCode,
-      constructorArgs,
-      contractName,
-      compilerVersion
-    } = req.body;
-
-    // ⚠️ Validation
+    const { contractAddress, sourceCode, constructorArgs, contractName, compilerVersion } = req.body;
     if (!contractAddress || !sourceCode || !contractName || !compilerVersion) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields"
-      });
+      return res.status(400).json({ success: false, message: "Required fields missing" });
     }
-
-    const result = await verifyContract({
-      contractAddress,
-      sourceCode,
-      constructorArgs,
-      contractName,
-      compilerVersion
-    });
-
-    res.json({
-      success: true,
-      message: "Verification request sent to BscScan",
-      data: result
-    });
-
+    const result = await verifyContract({ contractAddress, sourceCode, constructorArgs, contractName, compilerVersion });
+    res.json({ success: true, data: result });
   } catch (err) {
-    console.error("❌ verify-contract error:", err.message);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 /**
- * 🚀 2. Check verification status
- * POST /api/check-status
+ * 🚀 Status check
  */
 router.post("/check-status", async (req, res) => {
   try {
     const { guid } = req.body;
-
-    if (!guid) {
-      return res.status(400).json({
-        success: false,
-        message: "GUID is required"
-      });
-    }
-
+    if (!guid) return res.status(400).json({ success: false, message: "GUID is required" });
     const result = await checkStatus(guid);
-
-    res.json({
-      success: true,
-      message: "Status fetched successfully",
-      data: result
-    });
-
+    res.json({ success: true, data: result });
   } catch (err) {
-    console.error("❌ check-status error:", err.message);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
